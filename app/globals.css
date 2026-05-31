@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans:wght@400;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans JP', 'Noto Sans', system-ui, sans-serif;
+}
+
+/* Custom scrollbar for image grid */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #EE4D2D;
+  border-radius: 2px;
+}
+
+/* Canvas cursor */
+.canvas-container {
+  cursor: default;
+}
