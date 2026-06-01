@@ -39,9 +39,7 @@ const CROP_RECT_NAME = '__crop_rect__';
 const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
   ({ isFirstImage, onCanvasChange, onReady, onCropModeChange }, ref) => {
   const canvasEl = useRef<HTMLCanvasElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fabricNs = useRef<any>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -53,9 +51,7 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
   const onCropModeChangeRef = useRef(onCropModeChange);
   onCropModeChangeRef.current = onCropModeChange;
   const loadingRef = useRef(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cropTargetRef = useRef<any>(null);  // 切り抜き対象の画像オブジェクト
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cropRectRef = useRef<any>(null);    // 切り抜き範囲を示すRect
 
   useEffect(() => { isFocusedRef.current = isFocused; }, [isFocused]);
@@ -70,7 +66,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
     let cleanupFns: (() => void)[] = [];
 
     import('fabric').then((mod) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fabric = (mod as any).fabric ?? (mod as any).default ?? mod;
       if (!fabric || !fabric.Canvas) {
         setInitError('Fabric.jsの読み込みに失敗しました。ページを再読み込みしてください。');
@@ -119,10 +114,8 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
           (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA'));
 
         // Blobをキャンバスに追加するヘルパー
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const addBlobToCanvas = (blob: Blob) => {
           const url = URL.createObjectURL(blob);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           f.Image.fromURL(url, (img: any) => {
             const scale = Math.min(
               (CANVAS_DISPLAY_SIZE * 0.85) / (img.width || 1),
@@ -256,7 +249,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
       const canvas = fc.current;
       const fabric = fabricNs.current;
       if (!canvas || !fabric) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fabric.Image.fromURL(dataUrl, (img: any) => {
         const scale = Math.min(
           (CANVAS_DISPLAY_SIZE * 0.85) / (img.width || 1),
@@ -284,7 +276,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
         });
         return;
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fabric.Image.fromURL(dataUrl, (img: any) => {
         canvas.setBackgroundImage(img, () => {
           canvas.renderAll();
@@ -509,7 +500,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
       canvas.remove(rect);
 
       // 新しいクロップ済み画像を追加（cropRect の中心に配置）
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fabric.Image.fromURL(croppedUrl, (newImg: any) => {
         newImg.set({
           left: rLeft + rW / 2,
@@ -545,7 +535,6 @@ const CanvasEditor = forwardRef<CanvasEditorRef, Props>(
           if (imageType) {
             const blob = await item.getType(imageType);
             const url = URL.createObjectURL(blob);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fabric.Image.fromURL(url, (img: any) => {
               const scale = Math.min(
                 (CANVAS_DISPLAY_SIZE * 0.85) / (img.width || 1),

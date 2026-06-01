@@ -22,7 +22,6 @@ export async function translateTextGoogle(
   const res = await fetch(url);
   if (!res.ok) throw new Error('Translation request failed');
   const data = await res.json();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const translated = (data[0] as any[]).map((item: any[]) => item[0]).join('');
   return translated;
 }

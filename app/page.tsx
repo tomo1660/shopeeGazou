@@ -211,7 +211,6 @@ export default function Home() {
         await new Promise<void>((resolve) => {
           const el = document.createElement('canvas');
           el.width = CANVAS_DISPLAY_SIZE; el.height = CANVAS_DISPLAY_SIZE;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const oc = new (fabric as any).Canvas(el, { width: CANVAS_DISPLAY_SIZE, height: CANVAS_DISPLAY_SIZE });
           oc.loadFromJSON(json, () => {
             oc.renderAll();

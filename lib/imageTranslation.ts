@@ -69,12 +69,10 @@ function xOverlapRatio(a: BBox, b: BBox): number {
 // ─────────────────────────────────────────────
 // OCR結果から行データを抽出
 // ─────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractLines(data: any): LineData[] {
   const MIN_CONF = 15;
   const MIN_H = 6;
   const MIN_W = 10;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawLines: any[] = data.lines || [];
 
   return rawLines
@@ -87,7 +85,6 @@ function extractLines(data: any): LineData[] {
       if (!bbox) return null;
       const h = bbox.y1 - bbox.y0;
       if (h < MIN_H || (bbox.x1 - bbox.x0) < MIN_W) return null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const words: any[] = line.words || [];
       const boldCount = words.filter((w) => w.is_bold).length;
       const isBold = words.length > 0 && boldCount / words.length > 0.4;
