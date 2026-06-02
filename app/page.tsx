@@ -31,15 +31,29 @@ function initFlat(): Record<CountryCode, (string | null)[]> {
   return s as Record<CountryCode, (string | null)[]>;
 }
 
+// ---- localStorage helpers ----
+const LSKEY = (k: string) => `shopee_tool_v1_${k}`;
+function saveLocal(key: string, val: unknown) {
+  try { localStorage.setItem(LSKEY(key), JSON.stringify(val)); } catch { /* quota exceeded */ }
+}
+function loadLocal<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const v = localStorage.getItem(LSKEY(key));
+    return v !== null ? (JSON.parse(v) as T) : fallback;
+  } catch { return fallback; }
+}
+
 // ---- component ----
 export default function Home() {
-  // React state (for rendering)
+  // React state (SSR-safe: defaults used for hydration, localStorage applied after mount)
   const [country, setCountry] = useState<CountryCode>('SG');
   const [activeIdx, setActiveIdx] = useState(0);
   const [frames, setFrames] = useState<FrameStore>(initFrameStore);
   const [selectedFrames, setSelectedFrames] = useState<SelectedFrameStore>(initSelectedFrameStore);
   const [thumbnails, setThumbnails] = useState<ThumbStore>(initFlat);
   const [canvasReady, setCanvasReady] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false); // localStorage 読み込み完了フラグ
   const [downloading, setDownloading] = useState(false);
   const [cropMode, setCropMode] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg'>('png');
@@ -52,11 +66,51 @@ export default function Home() {
     selectedFrames: initSelectedFrameStore(),
     jsonStore: initFlat(),
   });
+  // サムネイル最新値を保持（デバウンスタイマー内から参照するため）
+  const thumbsRef = useRef<ThumbStore>(initFlat());
+  // デバウンス保存タイマー
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Keep ref in sync with state
   useEffect(() => { s.current.country = country; }, [country]);
   useEffect(() => { s.current.activeIdx = activeIdx; }, [activeIdx]);
   useEffect(() => { s.current.frames = frames; }, [frames]);
   useEffect(() => { s.current.selectedFrames = selectedFrames; }, [selectedFrames]);
+  useEffect(() => { thumbsRef.current = thumbnails; }, [thumbnails]);
+
+  // ---- マウント後に localStorage から復元 ----
+  useEffect(() => {
+    const c   = loadLocal<CountryCode>('country', 'SG');
+    const idx = loadLocal<number>('activeIdx', 0);
+    const frm = loadLocal<FrameStore>('frames', initFrameStore());
+    const sel = loadLocal<SelectedFrameStore>('selectedFrames', initSelectedFrameStore());
+    const js  = loadLocal<Record<CountryCode, (string | null)[]>>('jsonStore', initFlat());
+    const th  = loadLocal<ThumbStore>('thumbnails', initFlat());
+
+    // state を更新
+    setCountry(c);
+    setActiveIdx(idx);
+    setFrames(frm);
+    setSelectedFrames(sel);
+    setThumbnails(th);
+
+    // ref を同期（キャンバスロード前に必要）
+    s.current.country = c;
+    s.current.activeIdx = idx;
+    s.current.frames = frm;
+    s.current.selectedFrames = sel;
+    s.current.jsonStore = js;
+    thumbsRef.current = th;
+
+    setDataLoaded(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- state 変化時に自動保存 ----
+  useEffect(() => { if (dataLoaded) saveLocal('country', country); }, [country, dataLoaded]);
+  useEffect(() => { if (dataLoaded) saveLocal('activeIdx', activeIdx); }, [activeIdx, dataLoaded]);
+  useEffect(() => { if (dataLoaded) saveLocal('frames', frames); }, [frames, dataLoaded]);
+  useEffect(() => { if (dataLoaded) saveLocal('selectedFrames', selectedFrames); }, [selectedFrames, dataLoaded]);
 
   const canvasRef = useRef<CanvasEditorRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,12 +147,25 @@ export default function Home() {
     }
   }, []);
 
-  // Load first slot when canvas is ready
+  // canvasReady と dataLoaded が両方 true になってからスロットをロード
   useEffect(() => {
-    if (!canvasReady) return;
-    loadSlot(country, activeIdx);
+    if (!canvasReady || !dataLoaded) return;
+    loadSlot(s.current.country, s.current.activeIdx);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasReady]);
+  }, [canvasReady, dataLoaded]);
+
+  // ページを閉じる直前に即時保存
+  useEffect(() => {
+    const onUnload = () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveCurrentSlot();
+      saveLocal('jsonStore', s.current.jsonStore);
+      saveLocal('thumbnails', thumbsRef.current);
+      saveLocal('activeIdx', s.current.activeIdx);
+    };
+    window.addEventListener('beforeunload', onUnload);
+    return () => window.removeEventListener('beforeunload', onUnload);
+  }, [saveCurrentSlot]);
 
   // ---- event handlers ----
   const handleSelectImage = useCallback((idx: number) => {
@@ -152,6 +219,13 @@ export default function Home() {
         return next;
       });
     }
+    // 1.5秒デバウンス保存（キャンバス操作中の過剰書き込みを防ぐ）
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveLocal('jsonStore', s.current.jsonStore);
+      saveLocal('thumbnails', thumbsRef.current);
+      saveTimer.current = null;
+    }, 1500);
   }, []);
 
   const handleClearSlot = useCallback((idx: number) => {
@@ -162,6 +236,8 @@ export default function Home() {
       next[c][idx] = null;
       return next;
     });
+    // クリア時は即時保存
+    saveLocal('jsonStore', s.current.jsonStore);
     if (idx === s.current.activeIdx) {
       canvasRef.current?.clearCanvas();
       applyFrame(c, idx);
